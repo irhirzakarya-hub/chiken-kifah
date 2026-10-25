@@ -17,35 +17,36 @@ const outfit = Outfit({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#06110f",
+  themeColor: "#0a0a0a",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://remess.ma"),
-  title: "Ferdaous TAZI | Directrice exécutive · REMESS - Économie Sociale & Solidaire",
+  metadataBase: new URL("https://chicken-kifah.vercel.app"),
+  title: "Chicken Kifah | مطعم شيكن كيفاه - برغر · شاورما · بيتزا",
   description:
-    "Directrice exécutive du Réseau Marocain de l'Économie Sociale et Solidaire (REMESS). Finance solidaire, stratégie financière, égalité de genre, gouvernance de projets et facilitatrice certifiée GET Ahead (BIT). Contact : 0661633888 - F.tazi@remess.ma",
+    "مطعم شيكن كيفاه - أشهى الوجبات السريعة من برغر وشاورما وبيتزا بأعلى جودة وأفضل الأسعار في المغرب",
   keywords: [
-    "Ferdaous TAZI",
-    "REMESS",
-    "Économie Sociale et Solidaire",
-    "Finance Solidaire",
-    "GET Ahead BIT",
-    "Entrepreneuriat Féminin",
-    "Rabat",
-    "Maroc",
-    "Gouvernance de Projets",
+    "Chicken Kifah",
+    "شيكن كيفاه",
+    "مطعم",
+    "برغر",
+    "شاورما",
+    "بيتزا",
+    "وجبات سريعة",
+    "المغرب",
+    "restaurant maroc",
+    "burger",
+    "pizza",
   ],
-  authors: [{ name: "Ferdaous TAZI" }],
+  authors: [{ name: "Chicken Kifah Restaurant" }],
   openGraph: {
-    title: "Ferdaous TAZI | Directrice exécutive · REMESS",
-    description:
-      "Profil professionnel officiel · Directrice exécutive du Réseau Marocain de l'Économie Sociale et Solidaire (REMESS)",
-    type: "profile",
-    locale: "fr_MA",
+    title: "Chicken Kifah | مطعم شيكن كيفاه",
+    description: "أشهى الوجبات السريعة - برغر، شاورما، بيتزا",
+    type: "website",
+    locale: "ar_MA",
   },
 };
 
@@ -55,8 +56,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" dir="ltr" className={`${cairo.variable} ${outfit.variable}`}>
-      <body className="min-h-screen bg-[#050f0d] text-slate-100 font-sans selection:bg-[#d4af37] selection:text-black">
+    <html lang="ar" dir="rtl" className={`${cairo.variable} ${outfit.variable}`}>
+      <body className="min-h-screen bg-[#0a0a0a] text-slate-100 font-sans selection:bg-amber-500 selection:text-black">
         {children}
       </body>
     </html>

@@ -1,1411 +1,935 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Save,
-  ArrowRight,
-  Upload,
-  Lock,
-  Unlock,
-  CheckCircle,
-  AlertCircle,
-  FileJson,
-  Phone,
-  Image as ImageIcon,
-  Shield,
-  Eye,
-  LogOut,
-  Cloud,
-  Database,
-  Trash2,
-  Briefcase,
-  QrCode,
-  Download,
-  ExternalLink,
-  Link as LinkIcon,
-  RefreshCw,
-} from "lucide-react";
-import { ProfileData } from "@/lib/types";
-import { DEFAULT_PROFILE } from "@/lib/constants";
+import Link from "next/link";
+import { MenuData, MenuCategory, MenuItemData } from "@/lib/menu-types";
 
-export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState(false);
-  const [showPin, setShowPin] = useState(false);
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function uid() {
+  return Math.random().toString(36).slice(2, 9);
+}
 
-  const [profile, setProfile] = useState<ProfileData>(DEFAULT_PROFILE);
-  const [saving, setSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingQr, setUploadingQr] = useState(false);
-  const [toast, setToast] = useState<{ type: "success" | "error" | "info"; msg: string } | null>(
-    null
+// ─── Icons ───────────────────────────────────────────────────────────────────
+function SaveIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <polyline points="17 21 17 13 7 13 7 21" />
+      <polyline points="7 3 7 8 15 8" />
+    </svg>
   );
+}
+function PlusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+function TrashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
+    </svg>
+  );
+}
+function UploadIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" />
+      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+    </svg>
+  );
+}
+function ChevronDown() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+function ChevronUp() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+}
+function EyeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+function LogoutIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+function LockIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
 
-  const [activeTab, setActiveTab] = useState<"basic" | "contact" | "qrcode" | "media" | "cloud">("basic");
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ msg, type, show }: { msg: string; type: "success" | "error"; show: boolean }) {
+  return (
+    <div className={`ck-toast ${type} ${show ? "show" : ""}`}>
+      {type === "success" ? "✓" : "✗"} {msg}
+    </div>
+  );
+}
 
-  // File uploads
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const qrFileInputRef = useRef<HTMLInputElement>(null);
+// ─── Image Upload ─────────────────────────────────────────────────────────────
+function ImageUpload({
+  label, currentUrl, prefix, onUploaded
+}: {
+  label: string;
+  currentUrl: string;
+  prefix: string;
+  onUploaded: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Storage status
-  const [storageStatus, setStorageStatus] = useState<{
-    hasKv: boolean;
-    hasBlob: boolean;
-    hasGithub: boolean;
-    isCloudReady: boolean;
-  }>({ hasKv: false, hasBlob: false, hasGithub: false, isCloudReady: false });
-
-  useEffect(() => {
-    // Eradicate obsolete Bilal keys
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("bilal_profile_override");
-      localStorage.removeItem("bilal_admin_auth");
-      localStorage.removeItem("bilal_github_token");
+  const handleFile = async (file: File) => {
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("prefix", prefix);
+    fd.append("oldImage", currentUrl || "");
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.success) onUploaded(data.url || data.dataUrl);
+    } catch {
+      // error uploading
+    } finally {
+      setUploading(false);
     }
+  };
 
-    async function loadData() {
-      try {
-        const res = await fetch(`/api/profile?t=${Date.now()}`, { cache: "no-store" });
-        if (res.ok) {
-          const resJson = await res.json();
-          const { _storageCapabilities, ...data } = resJson;
-          if (_storageCapabilities) {
-            setStorageStatus(_storageCapabilities);
-          }
+  return (
+    <div>
+      <label className="ck-label">{label}</label>
+      <div
+        className={`ck-upload-zone${uploading ? " uploading" : ""}`}
+        onClick={() => inputRef.current?.click()}
+        onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+        onDragOver={(e) => e.preventDefault()}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+        />
+        {currentUrl ? (
+          <div style={{ position: "relative", width: "100%", height: "100%" }}>
+            <Image src={currentUrl} alt="preview" fill style={{ objectFit: "contain" }} />
+            <div style={{
+              position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              opacity: 0, transition: "opacity 0.2s",
+            }}
+              className="upload-hover-overlay"
+            >
+              <UploadIcon />
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: 24, color: "#525252" }}>
+            <UploadIcon />
+            <span style={{ fontSize: 13 }}>{uploading ? "جاري الرفع..." : "انقر أو اسحب صورة هنا"}</span>
+          </div>
+        )}
+        {uploading && (
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ color: "#f59e0b", fontWeight: 700 }}>جاري الرفع...</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-          // Strict sanitization for Ferdaous TAZI
-          let cleanData = { ...data };
-          cleanData.businessName =
-            typeof cleanData.businessName === "string"
-              ? cleanData.businessName
-              : cleanData.businessName?.fr || "Ferdaous TAZI";
-          cleanData.title =
-            typeof cleanData.title === "string"
-              ? cleanData.title
-              : (cleanData.title as any)?.fr || "Directrice executive";
-          cleanData.organization =
-            typeof cleanData.organization === "string"
-              ? cleanData.organization
-              : (cleanData.organization as any)?.fr || "REMESS";
-          cleanData.description =
-            typeof cleanData.description === "string"
-              ? cleanData.description
-              : cleanData.description?.fr || "";
-          cleanData.phone = cleanData.phone || "0661633888";
-          cleanData.phoneDisplay = cleanData.phoneDisplay || cleanData.phone;
-          cleanData.whatsapp = cleanData.whatsapp || cleanData.phone || "0661633888";
-          cleanData.email = cleanData.email || "F.tazi@remess.ma";
-          cleanData.qrCodeUrl = cleanData.qrCodeUrl ?? "";
-          cleanData.qrCodeImage = cleanData.qrCodeImage ?? "";
+// ─── Item Editor ──────────────────────────────────────────────────────────────
+function ItemEditor({
+  item, catIcon, currency,
+  onChange, onDelete
+}: {
+  item: MenuItemData;
+  catIcon: string;
+  currency: string;
+  onChange: (updated: MenuItemData) => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
 
-          if (
-            cleanData.posterImage &&
-            (cleanData.posterImage === "/uploads/ferdaous_tazi.jpg" ||
-              cleanData.posterImage.includes("img-1792") ||
-              cleanData.posterImage.includes("poster.png"))
-          ) {
-            cleanData.posterImage = "";
-          }
+  const set = (key: keyof MenuItemData, val: string | number | boolean) => {
+    onChange({ ...item, [key]: val });
+  };
 
-          const localOverride = localStorage.getItem("ferdaous_profile_override");
-          if (localOverride) {
-            try {
-              const parsed = JSON.parse(localOverride);
-              if (parsed && typeof parsed === "object") {
-                cleanData = { ...cleanData, ...parsed };
-              }
-            } catch (e) {
-              console.error(e);
-            }
-          }
+  return (
+    <div className="ck-item-card">
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Thumb */}
+        <div style={{
+          width: 52, height: 52, borderRadius: 12, overflow: "hidden", flexShrink: 0,
+          background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+          border: "1px solid rgba(245,158,11,0.15)"
+        }}>
+          {item.image ? (
+            <Image src={item.image} alt="" width={52} height={52} style={{ objectFit: "cover" }} />
+          ) : catIcon}
+        </div>
 
-          setProfile(cleanData);
-        }
-      } catch (err) {
-        console.warn("Could not fetch profile", err);
+        {/* Name & price */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", marginBottom: 2 }}>{item.nameAr || "صنف بدون اسم"}</div>
+          <div style={{ fontSize: 13, color: "#f59e0b", fontWeight: 700 }}>{item.price} {currency}</div>
+        </div>
+
+        {/* Toggle available */}
+        <label className="ck-toggle" title="متوفر / غير متوفر">
+          <input type="checkbox" checked={item.available} onChange={(e) => set("available", e.target.checked)} />
+          <span className="ck-toggle-slider" />
+        </label>
+
+        {/* Expand */}
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="ck-btn-secondary"
+          style={{ padding: "6px 10px" }}
+        >
+          {open ? <ChevronUp /> : <ChevronDown />}
+        </button>
+
+        {/* Delete */}
+        <button className="ck-btn-danger" style={{ padding: "6px 10px" }} onClick={onDelete}>
+          <TrashIcon />
+        </button>
+      </div>
+
+      {/* Expanded editor */}
+      {open && (
+        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 14, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
+          {/* Name in 3 languages */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div>
+              <label className="ck-label">🇲🇦 الاسم بالعربية *</label>
+              <input className="ck-input" value={item.nameAr} onChange={(e) => set("nameAr", e.target.value)} placeholder="اسم الصنف" />
+            </div>
+            <div>
+              <label className="ck-label">🇫🇷 Français</label>
+              <input className="ck-input" value={item.nameFr} onChange={(e) => set("nameFr", e.target.value)} placeholder="Nom du plat" style={{ direction: "ltr" }} />
+            </div>
+            <div>
+              <label className="ck-label">🇬🇧 English</label>
+              <input className="ck-input" value={item.nameEn || ""} onChange={(e) => set("nameEn", e.target.value)} placeholder="Dish name" style={{ direction: "ltr" }} />
+            </div>
+          </div>
+
+          <div>
+            <label className="ck-label">السعر الأساسي ({currency})</label>
+            <input className="ck-input" type="number" value={item.price} min={0}
+              onChange={(e) => set("price", parseFloat(e.target.value) || 0)} placeholder="0" style={{ direction: "ltr" }} />
+          </div>
+
+          {/* Badge in 3 languages */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div>
+              <label className="ck-label">🇲🇦 الشارة بالعربية (اختياري)</label>
+              <input className="ck-input" value={item.badge || ""} onChange={(e) => set("badge", e.target.value)} placeholder="مثال: الأكثر طلبًا" />
+            </div>
+            <div>
+              <label className="ck-label">🇫🇷 Badge en français</label>
+              <input className="ck-input" value={item.badgeFr || ""} onChange={(e) => set("badgeFr", e.target.value)} placeholder="Ex: Populaire" style={{ direction: "ltr" }} />
+            </div>
+            <div>
+              <label className="ck-label">🇬🇧 Badge in English</label>
+              <input className="ck-input" value={item.badgeEn || ""} onChange={(e) => set("badgeEn", e.target.value)} placeholder="Ex: Best Seller" style={{ direction: "ltr" }} />
+            </div>
+          </div>
+
+          <div>
+            <label className="ck-label">نص الأحجام والأسعار المتعددة (اختياري)</label>
+            <input className="ck-input" value={item.sizeLabel || ""} onChange={(e) => set("sizeLabel", e.target.value)} placeholder="مثال: M: 22 DH | XL: 30 DH" style={{ direction: "ltr" }} />
+          </div>
+
+          {/* Description in 3 languages */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div>
+              <label className="ck-label">🇲🇦 الوصف بالعربية</label>
+              <textarea className="ck-input ck-textarea" value={item.descAr || ""} onChange={(e) => set("descAr", e.target.value)} placeholder="وصف الصنف" rows={2} />
+            </div>
+            <div>
+              <label className="ck-label">🇫🇷 Français</label>
+              <textarea className="ck-input ck-textarea" value={item.descFr || ""} onChange={(e) => set("descFr", e.target.value)} placeholder="Description" rows={2} style={{ direction: "ltr" }} />
+            </div>
+            <div>
+              <label className="ck-label">🇬🇧 English</label>
+              <textarea className="ck-input ck-textarea" value={item.descEn || ""} onChange={(e) => set("descEn", e.target.value)} placeholder="Description" rows={2} style={{ direction: "ltr" }} />
+            </div>
+          </div>
+
+          <ImageUpload
+            label="صورة الصنف"
+            currentUrl={item.image}
+            prefix={`item-${item.id}`}
+            onUploaded={(url) => set("image", url)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Category Editor ──────────────────────────────────────────────────────────
+function CategoryEditor({
+  cat, currency,
+  onChange, onDelete, onMoveUp, onMoveDown, isFirst, isLast
+}: {
+  cat: MenuCategory;
+  currency: string;
+  onChange: (c: MenuCategory) => void;
+  onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const set = (key: keyof MenuCategory, val: string) => {
+    onChange({ ...cat, [key]: val });
+  };
+
+  const setItem = (idx: number, item: MenuItemData) => {
+    const items = [...cat.items];
+    items[idx] = item;
+    onChange({ ...cat, items });
+  };
+
+  const addItem = () => {
+    onChange({
+      ...cat,
+      items: [
+        ...cat.items,
+        { id: uid(), nameAr: "", nameFr: "", nameEn: "", descAr: "", descFr: "", descEn: "", price: 0, image: "", badge: "", badgeFr: "", badgeEn: "", available: true },
+      ],
+    });
+  };
+
+  const deleteItem = (idx: number) => {
+    const items = cat.items.filter((_, i) => i !== idx);
+    onChange({ ...cat, items });
+  };
+
+  return (
+    <div className="ck-admin-card">
+      {/* Category header */}
+      <button className="ck-accordion-trigger" onClick={() => setOpen((o) => !o)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 22 }}>{cat.icon}</span>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#fafafa" }}>{cat.nameAr || "قسم بدون اسم"}</div>
+            <div style={{ fontSize: 12, color: "#737373" }}>{cat.items.length} صنف · {cat.nameFr} {cat.nameEn ? `· ${cat.nameEn}` : ""}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Move up/down */}
+          <button
+            className="ck-btn-secondary" style={{ padding: "5px 8px" }}
+            onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+            disabled={isFirst}
+            title="تحريك لأعلى"
+          >▲</button>
+          <button
+            className="ck-btn-secondary" style={{ padding: "5px 8px" }}
+            onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+            disabled={isLast}
+            title="تحريك لأسفل"
+          >▼</button>
+          <button
+            className="ck-btn-danger" style={{ padding: "6px 10px" }}
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          >
+            <TrashIcon />
+          </button>
+          <span style={{ color: "#525252" }}>{open ? <ChevronUp /> : <ChevronDown />}</span>
+        </div>
+      </button>
+
+      {open && (
+        <div style={{ padding: "0 20px 20px" }}>
+          {/* Category meta */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 70px", gap: 10, marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 20 }}>
+            <div>
+              <label className="ck-label">🇲🇦 بالعربية *</label>
+              <input className="ck-input" value={cat.nameAr} onChange={(e) => set("nameAr", e.target.value)} placeholder="مثال: البرغر" />
+            </div>
+            <div>
+              <label className="ck-label">🇫🇷 Français</label>
+              <input className="ck-input" value={cat.nameFr} onChange={(e) => set("nameFr", e.target.value)} placeholder="Ex: Burgers" style={{ direction: "ltr" }} />
+            </div>
+            <div>
+              <label className="ck-label">🇬🇧 English</label>
+              <input className="ck-input" value={cat.nameEn || ""} onChange={(e) => set("nameEn", e.target.value)} placeholder="Ex: Burgers" style={{ direction: "ltr" }} />
+            </div>
+            <div>
+              <label className="ck-label">الأيقونة</label>
+              <input className="ck-input" value={cat.icon} onChange={(e) => set("icon", e.target.value)} placeholder="🍔" style={{ textAlign: "center", fontSize: 20 }} />
+            </div>
+          </div>
+
+          {/* Items */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {cat.items.map((item, idx) => (
+              <ItemEditor
+                key={item.id}
+                item={item}
+                catIcon={cat.icon}
+                currency={currency}
+                onChange={(upd) => setItem(idx, upd)}
+                onDelete={() => deleteItem(idx)}
+              />
+            ))}
+          </div>
+
+          <button className="ck-btn-secondary" onClick={addItem} style={{ marginTop: 12, width: "100%", justifyContent: "center" }}>
+            <PlusIcon /> إضافة صنف جديد
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PIN Screen ───────────────────────────────────────────────────────────────
+function PinScreen({ correctPin, onSuccess }: { correctPin: string; onSuccess: () => void }) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState(false);
+
+  const press = (d: string) => {
+    if (pin.length >= 6) return;
+    const next = pin + d;
+    setPin(next);
+    setError(false);
+    if (next.length === correctPin.length) {
+      if (next === correctPin) {
+        setTimeout(onSuccess, 300);
+      } else {
+        setError(true);
+        setTimeout(() => { setPin(""); setError(false); }, 700);
       }
     }
-    loadData();
+  };
 
-    if (sessionStorage.getItem("ferdaous_admin_auth") === "true") {
-      setIsAuthenticated(true);
-    }
+  const del = () => setPin((p) => p.slice(0, -1));
+
+  return (
+    <div className="ck-modal-overlay">
+      <div className="ck-modal">
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <div style={{ color: "#f59e0b", marginBottom: 12, display: "flex", justifyContent: "center" }}>
+            <LockIcon />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: "#fafafa", marginBottom: 4 }}>لوحة الإدارة</h2>
+          <p style={{ fontSize: 13, color: "#737373" }}>أدخل رمز PIN للدخول</p>
+        </div>
+
+        {/* PIN dots */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 14, marginBottom: 28 }}>
+          {Array.from({ length: correctPin.length }).map((_, i) => (
+            <div
+              key={i}
+              className={`ck-pin-dot${i < pin.length ? " filled" : ""}${error ? " filled" : ""}`}
+              style={error ? { background: "#ef4444", borderColor: "#ef4444", boxShadow: "0 0 10px rgba(239,68,68,0.5)" } : {}}
+            />
+          ))}
+        </div>
+
+        {/* Numpad */}
+        <div className="ck-numpad">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+            <button key={n} className="ck-numpad-btn" onClick={() => press(String(n))}>{n}</button>
+          ))}
+          <button className="ck-numpad-btn delete" onClick={del}>⌫</button>
+          <button className="ck-numpad-btn" onClick={() => press("0")}>0</button>
+          <button className="ck-numpad-btn" onClick={() => press("0")} style={{ opacity: 0, pointerEvents: "none" }} />
+        </div>
+
+        <Link href="/" style={{ display: "block", textAlign: "center", marginTop: 20, fontSize: 13, color: "#525252", textDecoration: "none" }}>
+          ← العودة للمنيو
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Admin ───────────────────────────────────────────────────────────────
+export default function AdminPage() {
+  const [menu, setMenu] = useState<MenuData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const [activeSection, setActiveSection] = useState<"info" | "menu" | "settings">("info");
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error"; show: boolean }>({ msg: "", type: "success", show: false });
+
+  const showToast = useCallback((msg: string, type: "success" | "error") => {
+    setToast({ msg, type, show: true });
+    setTimeout(() => setToast((t) => ({ ...t, show: false })), 3500);
   }, []);
 
-  const showToast = (type: "success" | "error" | "info", msg: string) => {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 4500);
-  };
+  useEffect(() => {
+    fetch("/api/menu", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => setMenu(data))
+      .catch(() => showToast("فشل تحميل البيانات", "error"))
+      .finally(() => setLoading(false));
+  }, [showToast]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const entered = pinInput.trim();
-    const customPin = (profile.adminPin && profile.adminPin.trim()) || "2026";
-    if (entered === customPin || entered === "2026") {
-      setIsAuthenticated(true);
-      sessionStorage.setItem("ferdaous_admin_auth", "true");
-      setPinError(false);
-    } else {
-      setPinError(true);
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem("ferdaous_admin_auth");
-    setPinInput("");
-  };
-
-  const handleSave = async () => {
+  const save = async () => {
+    if (!menu) return;
     setSaving(true);
     try {
-      const cleanPhone = (profile.phone || "0661633888").trim();
-      const cleanWhatsapp = (profile.whatsapp || cleanPhone || "0661633888").trim();
-      const rawWa = cleanWhatsapp.replace(/[^0-9]/g, "");
-      const intlWa = rawWa.startsWith("0") ? `212${rawWa.slice(1)}` : rawWa;
-
-      const payload: ProfileData = {
-        ...profile,
-        phone: cleanPhone,
-        phoneDisplay: cleanPhone,
-        whatsapp: cleanWhatsapp,
-        whatsappLink: `https://wa.me/${intlWa}`,
-        email: (profile.email || "F.tazi@remess.ma").trim(),
-        linkedin: (profile.linkedin || "https://www.linkedin.com/in/ferdaous-tazi-961758361/").trim(),
-        title:
-          typeof profile.title === "string"
-            ? profile.title.trim()
-            : (profile.title as any)?.fr || "Directrice executive",
-        subtitle:
-          typeof profile.title === "string"
-            ? profile.title.trim()
-            : (profile.title as any)?.fr || "Directrice executive",
-        organization:
-          typeof profile.organization === "string"
-            ? profile.organization.trim()
-            : (profile.organization as any)?.fr || "REMESS",
-        slogan:
-          typeof profile.organization === "string"
-            ? profile.organization.trim()
-            : (profile.organization as any)?.fr || "REMESS",
-        qrCodeUrl: typeof profile.qrCodeUrl === "string" ? profile.qrCodeUrl.trim() : "",
-        qrCodeImage: profile.qrCodeImage || "",
-        posterImage: typeof profile.posterImage === "string" ? profile.posterImage.trim() : "",
-      };
-
-      const res = await fetch("/api/profile", {
+      const res = await fetch("/api/menu", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(menu),
       });
-
-      const resData = await res.json();
-      if (res.ok && resData.success) {
-        localStorage.setItem("ferdaous_profile_override", JSON.stringify(payload));
-        setProfile(payload);
-        showToast("success", resData.message || "✓ Modifications enregistrées avec succès !");
-      } else {
-        localStorage.setItem("ferdaous_profile_override", JSON.stringify(payload));
-        showToast("info", "✓ Enregistré localement dans le navigateur.");
-      }
+      const data = await res.json();
+      if (data.success) showToast(data.message || "✓ تم الحفظ بنجاح", "success");
+      else showToast(data.message || "فشل الحفظ", "error");
     } catch {
-      showToast("error", "Une erreur est survenue lors de l'enregistrement.");
+      showToast("خطأ في الاتصال بالخادم", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  // Image Upload handler
-  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingImage(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("prefix", "avatar");
-    formData.append("oldImage", profile.posterImage || "");
-
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        const newUrl = data.url || data.dataUrl;
-        setProfile((prev) => ({ ...prev, posterImage: newUrl }));
-        showToast("success", "✓ Photo de profil mise à jour avec succès !");
-      } else {
-        showToast("error", data.message || "Échec du téléchargement de l'image.");
-      }
-    } catch {
-      showToast("error", "Erreur réseau lors du téléversement de l'image.");
-    } finally {
-      setUploadingImage(false);
-    }
+  const set = (key: keyof MenuData, val: string) => {
+    if (!menu) return;
+    setMenu({ ...menu, [key]: val });
   };
 
-  // QR Code Image Upload handler
-  const handleQrImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingQr(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("prefix", "ferdaous_qrcode");
-    formData.append("oldImage", profile.qrCodeImage || "");
-
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        const newUrl = data.url || data.dataUrl;
-        setProfile((prev) => ({ ...prev, qrCodeImage: newUrl }));
-        showToast("success", "✓ Image personnalisée du QR Code enregistrée avec succès !");
-      } else {
-        showToast("error", data.message || "Échec du téléchargement du QR Code.");
-      }
-    } catch {
-      showToast("error", "Erreur réseau lors du téléversement du QR Code.");
-    } finally {
-      setUploadingQr(false);
-    }
+  const setCat = (idx: number, cat: MenuCategory) => {
+    if (!menu) return;
+    const cats = [...menu.categories];
+    cats[idx] = cat;
+    setMenu({ ...menu, categories: cats });
   };
 
-  const handleResetToDefault = () => {
-    if (confirm("Voulez-vous vraiment réinitialiser les données officielles de Mme Ferdaous TAZI ?")) {
-      setProfile(DEFAULT_PROFILE);
-      localStorage.removeItem("ferdaous_profile_override");
-      showToast("info", "Données officielles restaurées. Cliquez sur Enregistrer pour appliquer.");
-    }
+  const addCat = () => {
+    if (!menu) return;
+    setMenu({
+      ...menu,
+      categories: [
+        ...menu.categories,
+        { id: uid(), nameAr: "", nameFr: "", nameEn: "", icon: "🍽️", color: "#f59e0b", items: [] },
+      ],
+    });
   };
 
-  // Helper getters
-  const getNameValue = () => {
-    if (typeof profile.businessName === "string") return profile.businessName;
-    if (profile.businessName && typeof profile.businessName === "object") {
-      return profile.businessName.fr || profile.businessName.ar || "";
-    }
-    return profile.businessName ?? "";
+  const deleteCat = (idx: number) => {
+    if (!menu) return;
+    setMenu({ ...menu, categories: menu.categories.filter((_, i) => i !== idx) });
   };
 
-  const getTitleValue = () => {
-    if (typeof profile.title === "string") return profile.title;
-    if (typeof profile.subtitle === "string") return profile.subtitle;
-    if (profile.subtitle && typeof profile.subtitle === "object") {
-      return profile.subtitle.fr || profile.subtitle.ar || "";
-    }
-    return profile.title ?? "";
+  const moveCat = (idx: number, dir: -1 | 1) => {
+    if (!menu) return;
+    const cats = [...menu.categories];
+    const target = idx + dir;
+    if (target < 0 || target >= cats.length) return;
+    [cats[idx], cats[target]] = [cats[target], cats[idx]];
+    setMenu({ ...menu, categories: cats });
   };
 
-  const getOrgValue = () => {
-    if (typeof profile.organization === "string") return profile.organization;
-    if (typeof profile.slogan === "string") return profile.slogan;
-    if (profile.organization && typeof profile.organization === "object") {
-      return (profile.organization as any).fr || (profile.organization as any).ar || "";
-    }
-    if (profile.slogan && typeof profile.slogan === "object") {
-      return (profile.slogan as any).fr || (profile.slogan as any).ar || "";
-    }
-    return profile.organization ?? "";
-  };
-
-  const getDescValue = () => {
-    if (typeof profile.description === "string") return profile.description;
-    if (profile.description && typeof profile.description === "object") {
-      return profile.description.fr || profile.description.ar || "";
-    }
-    return profile.description ?? "";
-  };
-
-  // ==========================================================================
-  // LOGIN SCREEN
-  // ==========================================================================
-  if (!isAuthenticated) {
+  if (loading) {
     return (
-      <div
-        className="nfc-page-wrapper"
-        style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.94, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 320, damping: 25 }}
-          className="luxury-card card-gold-accent-line"
-          style={{ width: "100%", maxWidth: "420px", padding: "38px 28px", textAlign: "center" }}
-        >
-          <motion.div
-            animate={{ scale: [1, 1.08, 1] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            style={{
-              width: "64px",
-              height: "64px",
-              borderRadius: "20px",
-              background: "rgba(255, 255, 255, 0.08)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              color: "#f8fafc",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 18px",
-            }}
-          >
-            <Lock style={{ width: 30, height: 30 }} />
-          </motion.div>
-
-          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#ffffff", marginBottom: "6px" }}>
-            Espace Administration
-          </h2>
-          <p style={{ fontSize: "13px", color: "#cbd5e1", marginBottom: "4px", fontWeight: 700 }}>
-            Ferdaous TAZI · REMESS
-          </p>
-          <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "24px" }}>
-            Veuillez saisir votre code PIN sécurisé (par défaut : 2026)
-          </p>
-
-          <form onSubmit={handleLogin}>
-            <div style={{ position: "relative", marginBottom: "18px" }}>
-              <input
-                type={showPin ? "text" : "password"}
-                value={pinInput}
-                onChange={(e) => {
-                  setPinInput(e.target.value);
-                  setPinError(false);
-                }}
-                placeholder="Code PIN (ex: 2026)"
-                style={{
-                  width: "100%",
-                  padding: "15px 18px",
-                  borderRadius: "15px",
-                  background: "rgba(12, 14, 19, 0.92)",
-                  border: pinError ? "2px solid #ef4444" : "1px solid rgba(255, 255, 255, 0.2)",
-                  color: "#ffffff",
-                  fontSize: "17px",
-                  textAlign: "center",
-                  letterSpacing: "4px",
-                  outline: "none",
-                }}
-                autoFocus
-              />
-            </div>
-
-            {pinError && (
-              <motion.p
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{ color: "#ef4444", fontSize: "12px", marginBottom: "14px" }}
-              >
-                Code PIN incorrect. Veuillez réessayer (2026).
-              </motion.p>
-            )}
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              className="btn-gold-hero"
-              style={{ marginBottom: "16px" }}
-            >
-              <Unlock style={{ width: 18, height: 18 }} />
-              <span>Connexion Administrateur</span>
-            </motion.button>
-
-            <Link
-              href="/"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                color: "#94a3b8",
-                fontSize: "12px",
-                textDecoration: "none",
-              }}
-            >
-              <ArrowRight style={{ width: 14, height: 14 }} />
-              <span>Retour à la carte</span>
-            </Link>
-          </form>
-        </motion.div>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0a" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>⚙️</div>
+          <div style={{ color: "#f59e0b", fontWeight: 700 }}>جاري التحميل...</div>
+        </div>
       </div>
     );
   }
 
-  // ==========================================================================
-  // DASHBOARD MAIN
-  // ==========================================================================
+  if (!authed && menu) {
+    return <PinScreen correctPin={menu.adminPin || "1234"} onSuccess={() => setAuthed(true)} />;
+  }
+
+  if (!menu) return null;
+
+  const sections = [
+    { id: "info", label: "معلومات المطعم", icon: "🏪" },
+    { id: "menu", label: "إدارة المنيو", icon: "🍽️" },
+    { id: "settings", label: "الإعدادات", icon: "⚙️" },
+  ] as const;
+
   return (
-    <div className="nfc-page-wrapper" style={{ paddingBottom: "80px" }}>
-      {/* Toast Notification with AnimatePresence */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            style={{
-              position: "fixed",
-              top: "20px",
-              right: "20px",
-              left: "20px",
-              maxWidth: "460px",
-              margin: "0 auto",
-              zIndex: 100,
-              padding: "14px 20px",
-              borderRadius: "16px",
-              background:
-                toast.type === "success"
-                  ? "#064e3b"
-                  : toast.type === "error"
-                  ? "#7f1d1d"
-                  : "#1e293b",
-              border: "1px solid rgba(255,255,255,0.2)",
-              color: "#ffffff",
-              fontSize: "13px",
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-            }}
-          >
-            {toast.type === "success" && <CheckCircle style={{ width: 18, height: 18, color: "#34d399" }} />}
-            {toast.type === "error" && <AlertCircle style={{ width: 18, height: 18, color: "#f87171" }} />}
-            <span>{toast.msg}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="ck-admin-page">
+      <Toast {...toast} />
 
-      {/* Top Bar */}
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 40,
-          backdropFilter: "blur(22px)",
-          backgroundColor: "rgba(8, 9, 12, 0.94)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
-          padding: "12px 0",
-        }}
-      >
-        <div
-          className="admin-container"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "12px",
-                background: "rgba(255, 255, 255, 0.08)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#f8fafc",
-              }}
-            >
-              <Shield style={{ width: 20, height: 20 }} />
-            </div>
-            <div>
-              <div style={{ fontSize: "14.5px", fontWeight: 800, color: "#ffffff" }}>
-                Tableau de Bord REMESS
-              </div>
-              <div style={{ fontSize: "11px", color: "#cbd5e1" }}>
-                Ferdaous TAZI · Administration
+      {/* ── ADMIN HEADER ── */}
+      <div className="ck-admin-header">
+        <div className="ck-admin-container">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 24 }}>⚙️</div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: "#fafafa" }}>لوحة الإدارة</div>
+                <div style={{ fontSize: 11, color: "#525252" }}>Chicken Kifah Admin</div>
               </div>
             </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {/* View live public page */}
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="/"
-                target="_blank"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "9px 15px",
-                  borderRadius: "14px",
-                  background: "rgba(22, 26, 35, 0.85)",
-                  border: "1px solid rgba(255, 255, 255, 0.16)",
-                  color: "#f8fafc",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  textDecoration: "none",
-                }}
-              >
-                <Eye style={{ width: 14, height: 14 }} />
-                <span>Voir la Carte</span>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Link href="/" className="ck-btn-secondary" style={{ textDecoration: "none", padding: "8px 14px", fontSize: 13 }}>
+                <EyeIcon /> عرض المنيو
               </Link>
-            </motion.div>
-
-            {/* Save trigger */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleSave}
-              disabled={saving}
-              className="btn-gold-hero"
-              style={{
-                width: "auto",
-                padding: "9px 18px",
-                fontSize: "13px",
-                borderRadius: "14px",
-              }}
-            >
-              <Save style={{ width: 15, height: 15 }} />
-              <span>{saving ? "Enregistrement..." : "Enregistrer"}</span>
-            </motion.button>
-
-            {/* Logout */}
-            <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={handleLogout}
-              style={{
-                padding: "9px 13px",
-                borderRadius: "14px",
-                background: "rgba(255, 255, 255, 0.06)",
-                border: "none",
-                color: "#94a3b8",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <LogOut style={{ width: 16, height: 16 }} />
-            </motion.button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Form Body */}
-      <main className="admin-container" style={{ paddingTop: "24px" }}>
-        {/* Navigation Tabs */}
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            overflowX: "auto",
-            paddingBottom: "12px",
-            marginBottom: "20px",
-          }}
-        >
-          {[
-            { id: "basic", label: "Identité & Présentation", icon: Briefcase },
-            { id: "contact", label: "Coordonnées (Téléphone / WhatsApp / Email)", icon: Phone },
-            { id: "qrcode", label: "QR Code & Carte", icon: QrCode },
-            { id: "media", label: "Photo de Profil", icon: ImageIcon },
-            { id: "cloud", label: "Cloud Vercel & Sync", icon: Cloud },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                className="ck-btn-primary"
+                onClick={save}
+                disabled={saving}
+                style={{ padding: "8px 20px", fontSize: 13 }}
+              >
+                {saving ? "⏳ جاري الحفظ..." : <><SaveIcon /> حفظ التغييرات</>}
+              </button>
+              <button
+                className="ck-btn-danger"
+                onClick={() => setAuthed(false)}
+                style={{ padding: "8px 12px" }}
+                title="خروج"
+              >
+                <LogoutIcon />
+              </button>
+            </div>
+          </div>
+
+          {/* Section tabs */}
+          <div style={{ display: "flex", gap: 4, paddingBottom: 0, borderTop: "1px solid rgba(245,158,11,0.1)", paddingTop: 4 }}>
+            {sections.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id)}
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
                   padding: "10px 16px",
-                  borderRadius: "14px",
-                  background: active ? "var(--gold-gradient)" : "rgba(18, 21, 28, 0.75)",
-                  border: active
-                    ? "1px solid rgba(255, 255, 255, 0.45)"
-                    : "1px solid rgba(255, 255, 255, 0.08)",
-                  color: active ? "#08090b" : "#94a3b8",
-                  fontSize: "13px",
+                  fontSize: 13,
                   fontWeight: 700,
-                  whiteSpace: "nowrap",
                   cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  fontFamily: "var(--font-cairo), sans-serif",
+                  color: activeSection === s.id ? "#f59e0b" : "#525252",
+                  borderBottom: `2px solid ${activeSection === s.id ? "#f59e0b" : "transparent"}`,
                   transition: "all 0.2s ease",
                 }}
               >
-                <Icon style={{ width: 16, height: 16 }} />
-                <span>{tab.label}</span>
+                {s.icon} {s.label}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
+      </div>
 
-        {/* Tab Content Panes with Motion Reveal */}
-        <AnimatePresence mode="wait">
-          {/* TAB 1: BASIC INFO & BIO */}
-          {activeTab === "basic" && (
-            <motion.div
-              key="basic"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.25 }}
-              className="luxury-card"
-              style={{ padding: "26px 22px" }}
-            >
-              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#ffffff", marginBottom: "18px" }}>
-                Identité Professionnelle
-              </h3>
+      {/* ── CONTENT ── */}
+      <div className="ck-admin-container" style={{ padding: "24px 20px 100px" }}>
 
-              {/* Name */}
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                  Nom & Prénom
-                </label>
-                <input
-                  type="text"
-                  value={getNameValue()}
-                  onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      businessName: e.target.value,
-                    })
-                  }
-                  style={inputStyle}
-                />
-              </div>
+        {/* ── SECTION: INFO ── */}
+        {activeSection === "info" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Restaurant Info */}
+            <div className="ck-admin-card">
+              <div className="ck-admin-section-hd">🏪 معلومات المطعم</div>
+              <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-              {/* Directrice executive field under name */}
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12.5px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                  Directrice executive
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: Directrice executive"
-                  value={getTitleValue()}
-                  onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      title: e.target.value,
-                      subtitle: e.target.value,
-                    })
-                  }
-                  style={inputStyle}
-                />
-                <span style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px", display: "block" }}>
-                  Champ affiché directement sous le nom sur la carte
-                </span>
-              </div>
-
-              {/* REMESS field under title */}
-              <div style={{ marginBottom: "18px" }}>
-                <label style={{ display: "block", fontSize: "12.5px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                  REMESS
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: REMESS"
-                  value={getOrgValue()}
-                  onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      organization: e.target.value,
-                      slogan: e.target.value,
-                    })
-                  }
-                  style={inputStyle}
-                />
-                <span style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px", display: "block" }}>
-                  Organisation affichée sous le titre de poste
-                </span>
-              </div>
-
-              {/* Presentation Text */}
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontSize: "12px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                  Texte de Présentation Officiel
-                </label>
-                <textarea
-                  rows={8}
-                  value={getDescValue()}
-                  onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      description: e.target.value,
-                    })
-                  }
-                  style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
-                />
-              </div>
-
-              {/* Admin PIN */}
-              <div style={{ maxWidth: "300px" }}>
-                <label style={{ display: "block", fontSize: "12px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                  Code PIN Administrateur
-                </label>
-                <input
-                  type="text"
-                  value={profile.adminPin}
-                  onChange={(e) => setProfile({ ...profile, adminPin: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
-            </motion.div>
-          )}
-
-          {/* TAB 2: CONTACT & NETWORKS */}
-          {activeTab === "contact" && (
-            <motion.div
-              key="contact"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.25 }}
-              className="luxury-card"
-              style={{ padding: "26px 22px" }}
-            >
-              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#ffffff", marginBottom: "18px" }}>
-                Coordonnées Directes
-              </h3>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
-                {/* Phone */}
+                {/* Name in 3 languages */}
                 <div>
-                  <label style={{ display: "block", fontSize: "12.5px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                    Téléphone (Appels)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="0661633888"
-                    value={profile.phone ?? ""}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        phone: e.target.value,
-                        phoneDisplay: e.target.value,
-                      })
-                    }
-                    style={inputStyle}
-                  />
-                  <span style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px", display: "block" }}>
-                    Numéro pour les appels vocaux directs
-                  </span>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b", marginBottom: 10 }}>🏷️ اسم المطعم</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div>
+                      <label className="ck-label">🇲🇦 العربية *</label>
+                      <input className="ck-input" value={menu.restaurantName} onChange={(e) => set("restaurantName", e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇫🇷 Français</label>
+                      <input className="ck-input" value={menu.restaurantNameFr || ""} onChange={(e) => set("restaurantNameFr", e.target.value)} placeholder="Nom du restaurant" style={{ direction: "ltr" }} />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇬🇧 English</label>
+                      <input className="ck-input" value={menu.restaurantNameEn || ""} onChange={(e) => set("restaurantNameEn", e.target.value)} placeholder="Restaurant name" style={{ direction: "ltr" }} />
+                    </div>
+                  </div>
                 </div>
 
-                {/* WhatsApp */}
+                {/* Slogan */}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b", marginBottom: 10 }}>💬 شعار المطعم (Slogan)</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div>
+                      <label className="ck-label">🇲🇦 العربية</label>
+                      <input className="ck-input" value={menu.slogan} onChange={(e) => set("slogan", e.target.value)} placeholder="شعار بالعربية" />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇫🇷 Français</label>
+                      <input className="ck-input" value={menu.sloganFr || ""} onChange={(e) => set("sloganFr", e.target.value)} placeholder="Slogan en français" style={{ direction: "ltr" }} />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇬🇧 English</label>
+                      <input className="ck-input" value={menu.sloganEn || ""} onChange={(e) => set("sloganEn", e.target.value)} placeholder="Slogan in English" style={{ direction: "ltr" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b", marginBottom: 10 }}>📝 وصف المطعم</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div>
+                      <label className="ck-label">🇲🇦 العربية</label>
+                      <textarea className="ck-input ck-textarea" value={menu.description} onChange={(e) => set("description", e.target.value)} rows={2} placeholder="وصف بالعربية" />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇫🇷 Français</label>
+                      <textarea className="ck-input ck-textarea" value={menu.descriptionFr || ""} onChange={(e) => set("descriptionFr", e.target.value)} rows={2} placeholder="Description en français" style={{ direction: "ltr" }} />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇬🇧 English</label>
+                      <textarea className="ck-input ck-textarea" value={menu.descriptionEn || ""} onChange={(e) => set("descriptionEn", e.target.value)} rows={2} placeholder="Description in English" style={{ direction: "ltr" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b", marginBottom: 10 }}>📍 العنوان</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div>
+                      <label className="ck-label">🇲🇦 العربية</label>
+                      <input className="ck-input" value={menu.address} onChange={(e) => set("address", e.target.value)} placeholder="العنوان بالعربية" />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇫🇷 Français</label>
+                      <input className="ck-input" value={menu.addressFr || ""} onChange={(e) => set("addressFr", e.target.value)} placeholder="Adresse en français" style={{ direction: "ltr" }} />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇬🇧 English</label>
+                      <input className="ck-input" value={menu.addressEn || ""} onChange={(e) => set("addressEn", e.target.value)} placeholder="Address in English" style={{ direction: "ltr" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Open Hours */}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b", marginBottom: 10 }}>🕐 ساعات العمل</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div>
+                      <label className="ck-label">🇲🇦 العربية</label>
+                      <input className="ck-input" value={menu.openHours} onChange={(e) => set("openHours", e.target.value)} placeholder="09:00 - 23:00" style={{ direction: "ltr" }} />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇫🇷 Français</label>
+                      <input className="ck-input" value={menu.openHoursFr || ""} onChange={(e) => set("openHoursFr", e.target.value)} placeholder="09:00 - 23:00" style={{ direction: "ltr" }} />
+                    </div>
+                    <div>
+                      <label className="ck-label">🇬🇧 English</label>
+                      <input className="ck-input" value={menu.openHoursEn || ""} onChange={(e) => set("openHoursEn", e.target.value)} placeholder="09:00 AM - 11:00 PM" style={{ direction: "ltr" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Currency */}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div>
+                    <label className="ck-label">اسم العملة</label>
+                    <input className="ck-input" value={menu.currency} onChange={(e) => set("currency", e.target.value)} placeholder="درهم" />
+                  </div>
+                  <div>
+                    <label className="ck-label">رمز العملة</label>
+                    <input className="ck-input" value={menu.currencyCode} onChange={(e) => set("currencyCode", e.target.value)} placeholder="MAD" style={{ direction: "ltr" }} />
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+
+            {/* Social Links */}
+            <div className="ck-admin-card">
+              <div className="ck-admin-section-hd">📲 وسائل التواصل الاجتماعي</div>
+              <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "12.5px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                    WhatsApp (Messagerie)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="0661633888"
-                    value={profile.whatsapp ?? ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const raw = val.replace(/[^0-9]/g, "");
-                      const intl = raw.startsWith("0") ? `212${raw.slice(1)}` : raw;
-                      setProfile({
-                        ...profile,
-                        whatsapp: val,
-                        whatsappLink: `https://wa.me/${intl}`,
-                      });
-                    }}
-                    style={inputStyle}
-                  />
-                  <span style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px", display: "block" }}>
-                    Numéro dédié à la messagerie WhatsApp
-                  </span>
+                  <label className="ck-label">Instagram</label>
+                  <input className="ck-input" value={menu.socialLinks?.instagram || ""} onChange={(e) => setMenu({ ...menu, socialLinks: { ...menu.socialLinks, instagram: e.target.value } })} placeholder="https://instagram.com/..." style={{ direction: "ltr" }} />
                 </div>
-
-                {/* Email */}
                 <div>
-                  <label style={{ display: "block", fontSize: "12.5px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                    Adresse Email (F.tazi@remess.ma)
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="F.tazi@remess.ma"
-                    value={profile.email ?? ""}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    style={inputStyle}
-                  />
-                  <span style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px", display: "block" }}>
-                    Adresse de réception des courriels professionnels
-                  </span>
+                  <label className="ck-label">Facebook</label>
+                  <input className="ck-input" value={menu.socialLinks?.facebook || ""} onChange={(e) => setMenu({ ...menu, socialLinks: { ...menu.socialLinks, facebook: e.target.value } })} placeholder="https://facebook.com/..." style={{ direction: "ltr" }} />
                 </div>
-
-                {/* LinkedIn */}
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", fontSize: "12.5px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                    Lien Profil LinkedIn
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://www.linkedin.com/in/ferdaous-tazi-961758361/"
-                    value={profile.linkedin ?? ""}
-                    onChange={(e) => setProfile({ ...profile, linkedin: e.target.value })}
-                    style={inputStyle}
-                  />
-                  <span style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px", display: "block" }}>
-                    Lien direct vers le profil professionnel LinkedIn
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* TAB: QR CODE & CARTE */}
-          {activeTab === "qrcode" && (
-            <motion.div
-              key="qrcode"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.25 }}
-              className="luxury-card"
-              style={{ padding: "26px 22px" }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                <QrCode style={{ width: 22, height: 22, color: "#f8fafc" }} />
-                <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#ffffff", margin: 0 }}>
-                  Gestion & Liaison du QR Code
-                </h3>
-              </div>
-              <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "22px" }}>
-                Générez, personnalisez et reliez le QR Code directement à la page principale de la carte ou à un lien externe de votre choix.
-              </p>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px" }}>
-                {/* Left side: Configuration & Quick links */}
                 <div>
-                  {/* Target URL Input */}
-                  <div style={{ marginBottom: "20px" }}>
-                    <label style={{ display: "block", fontSize: "12.5px", color: "#cbd5e1", fontWeight: 700, marginBottom: "6px" }}>
-                      Lien de Destination du QR Code (URL cible)
-                    </label>
-                    <input
-                      type="url"
-                      placeholder={typeof window !== "undefined" ? window.location.origin : "https://votre-carte.com"}
-                      value={profile.qrCodeUrl ?? ""}
-                      onChange={(e) => setProfile({ ...profile, qrCodeUrl: e.target.value })}
-                      style={inputStyle}
-                    />
-                    <span style={{ fontSize: "11px", color: "#94a3b8", marginTop: "5px", display: "block" }}>
-                      {profile.qrCodeUrl
-                        ? `Le QR Code redirigera les scanners vers : ${profile.qrCodeUrl}`
-                        : "Lien automatique actif : Redirige vers la page d'accueil de cette carte digitale."}
-                    </span>
-                  </div>
-
-                  {/* Preset Quick Buttons */}
-                  <div style={{ marginBottom: "22px" }}>
-                    <span style={{ display: "block", fontSize: "11.5px", color: "#ffffff", fontWeight: 700, marginBottom: "8px" }}>
-                      Raccourcis de liaison rapide :
-                    </span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const origin = typeof window !== "undefined" ? window.location.origin : "";
-                          setProfile({ ...profile, qrCodeUrl: origin });
-                          showToast("info", "✓ Lié à la page principale de la carte !");
-                        }}
-                        className="btn-glass-action"
-                        style={{ justifyContent: "flex-start", fontSize: "12px", padding: "10px 14px", width: "100%" }}
-                      >
-                        <LinkIcon style={{ width: 15, height: 15, color: "#34d399" }} />
-                        <span>Lier à la Page Principale (Accueil de la Carte)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const ln = (profile.linkedin && profile.linkedin.trim()) || "https://www.linkedin.com/in/ferdaous-tazi-961758361/";
-                          setProfile({ ...profile, qrCodeUrl: ln });
-                          showToast("info", "✓ Lié au profil LinkedIn !");
-                        }}
-                        className="btn-glass-action"
-                        style={{ justifyContent: "flex-start", fontSize: "12px", padding: "10px 14px", width: "100%" }}
-                      >
-                        <ExternalLink style={{ width: 15, height: 15, color: "#60a5fa" }} />
-                        <span>Lier au profil LinkedIn officiel</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const wa = (profile.whatsappLink && profile.whatsappLink.trim()) || "https://wa.me/212661633888";
-                          setProfile({ ...profile, qrCodeUrl: wa });
-                          showToast("info", "✓ Lié à WhatsApp direct !");
-                        }}
-                        className="btn-glass-action"
-                        style={{ justifyContent: "flex-start", fontSize: "12px", padding: "10px 14px", width: "100%" }}
-                      >
-                        <Phone style={{ width: 15, height: 15, color: "#34d399" }} />
-                        <span>Lier à la discussion WhatsApp directe</span>
-                      </button>
-
-                      {profile.qrCodeUrl && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProfile({ ...profile, qrCodeUrl: "" });
-                            showToast("info", "✓ Réinitialisé au lien automatique par défaut.");
-                          }}
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            color: "#94a3b8",
-                            fontSize: "11px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            padding: "4px 8px",
-                            textDecoration: "underline",
-                          }}
-                        >
-                          Effacer et revenir au lien automatique (URL de visite)
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Custom Uploaded QR Code Image */}
-                  <div
-                    style={{
-                      background: "rgba(12, 14, 19, 0.7)",
-                      border: "1px dashed rgba(255, 255, 255, 0.2)",
-                      borderRadius: "14px",
-                      padding: "16px",
-                    }}
-                  >
-                    <span style={{ display: "block", fontSize: "12px", color: "#cbd5e1", fontWeight: 700, marginBottom: "4px" }}>
-                      Image Personnalisée du QR Code (Optionnel)
-                    </span>
-                    <p style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "12px", lineHeight: 1.5 }}>
-                      Si vous disposez d'un fichier QR Code fourni par un imprimeur pour une carte NFC ou un flyer, importez-le ici.
-                    </p>
-
-                    <input
-                      ref={qrFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleQrImageFileChange}
-                      style={{ display: "none" }}
-                    />
-
-                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-                      <button
-                        type="button"
-                        onClick={() => qrFileInputRef.current?.click()}
-                        disabled={uploadingQr}
-                        className="btn-glass-action"
-                        style={{ fontSize: "12px" }}
-                      >
-                        <Upload style={{ width: 14, height: 14 }} />
-                        <span>{uploadingQr ? "Téléversement..." : "Importer une image QR Code"}</span>
-                      </button>
-
-                      {profile.qrCodeImage && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProfile({ ...profile, qrCodeImage: "" });
-                            showToast("info", "Image personnalisée retirée. QR Code dynamique réactivé.");
-                          }}
-                          style={{
-                            background: "rgba(239, 68, 68, 0.15)",
-                            border: "1px solid rgba(239, 68, 68, 0.3)",
-                            color: "#f87171",
-                            borderRadius: "10px",
-                            padding: "7px 12px",
-                            fontSize: "11.5px",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Retirer l'image & Utiliser le QR généré
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right side: Live QR Preview Card */}
-                <div
-                  style={{
-                    background: "radial-gradient(ellipse at top, rgba(28, 32, 42, 0.85), rgba(8, 9, 12, 0.98))",
-                    border: "1px solid rgba(255, 255, 255, 0.14)",
-                    borderRadius: "18px",
-                    padding: "20px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                  }}
-                >
-                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#cbd5e1", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "1px" }}>
-                    Aperçu en Direct du QR Code
-                  </span>
-
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      padding: "16px",
-                      borderRadius: "18px",
-                      boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-                      marginBottom: "16px",
-                    }}
-                  >
-                    <img
-                      src={
-                        profile.qrCodeImage && profile.qrCodeImage.trim()
-                          ? profile.qrCodeImage
-                          : `https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=08090b&bgcolor=f1f5f9&data=${encodeURIComponent(
-                              (profile.qrCodeUrl && profile.qrCodeUrl.trim()) ||
-                              (typeof window !== "undefined" ? window.location.origin : "https://remess.ma")
-                            )}`
-                      }
-                      alt="QR Code Preview"
-                      style={{ width: "180px", height: "180px", objectFit: "contain", display: "block" }}
-                    />
-                  </div>
-
-                  <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "14px", maxWidth: "260px", wordBreak: "break-all" }}>
-                    <strong style={{ color: "#ffffff" }}>Cible : </strong>
-                    {(profile.qrCodeUrl && profile.qrCodeUrl.trim()) || (typeof window !== "undefined" ? window.location.origin : "/")}
-                  </div>
-
-                  {/* Actions for QR code */}
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const qrUrlToDownload =
-                          profile.qrCodeImage && profile.qrCodeImage.trim()
-                            ? profile.qrCodeImage
-                            : `https://api.qrserver.com/v1/create-qr-code/?size=600x600&color=08090b&bgcolor=f1f5f9&data=${encodeURIComponent(
-                                (profile.qrCodeUrl && profile.qrCodeUrl.trim()) ||
-                                (typeof window !== "undefined" ? window.location.origin : "https://remess.ma")
-                              )}`;
-                        
-                        const a = document.createElement("a");
-                        a.href = qrUrlToDownload;
-                        a.download = "qr_code_ferdaous_tazi.png";
-                        a.target = "_blank";
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        showToast("success", "✓ Téléchargement du QR Code lancé !");
-                      }}
-                      className="btn-glass-action"
-                      style={{ fontSize: "11.5px", padding: "8px 12px" }}
-                    >
-                      <Download style={{ width: 14, height: 14, color: "#cbd5e1" }} />
-                      <span>Télécharger PNG</span>
-                    </button>
-
-                    <a
-                      href={(profile.qrCodeUrl && profile.qrCodeUrl.trim()) || "/"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-glass-action"
-                      style={{ fontSize: "11.5px", padding: "8px 12px", textDecoration: "none" }}
-                    >
-                      <ExternalLink style={{ width: 14, height: 14 }} />
-                      <span>Tester le lien</span>
-                    </a>
-                  </div>
+                  <label className="ck-label">TikTok</label>
+                  <input className="ck-input" value={menu.socialLinks?.tiktok || ""} onChange={(e) => setMenu({ ...menu, socialLinks: { ...menu.socialLinks, tiktok: e.target.value } })} placeholder="https://tiktok.com/@..." style={{ direction: "ltr" }} />
                 </div>
               </div>
-            </motion.div>
-          )}
+            </div>
 
-          {/* TAB: MEDIA / PHOTO */}
-          {activeTab === "media" && (
-            <motion.div
-              key="media"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.25 }}
-              className="luxury-card"
-              style={{ padding: "26px 22px" }}
-            >
-              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#ffffff", marginBottom: "8px" }}>
-                Photo de Profil Officielle
-              </h3>
-              <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "20px" }}>
-                Gérez la photo affichée au sommet de votre carte digitale. Si vous supprimez la photo, le cadre disparaît complètement et la carte s'affiche en mode épuré.
-              </p>
-
-              <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                onChange={handleImageFileChange}
-              />
-
-              <div
-                style={{
-                  maxWidth: "380px",
-                  margin: "0 auto",
-                  textAlign: "center",
-                  padding: "26px 20px",
-                  background: "rgba(12, 14, 19, 0.8)",
-                  borderRadius: "20px",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                }}
-              >
-                {profile.posterImage && profile.posterImage.trim() ? (
-                  <>
-                    <div
-                      style={{
-                        position: "relative",
-                        width: "140px",
-                        height: "140px",
-                        borderRadius: "50%",
-                        overflow: "hidden",
-                        margin: "0 auto 18px",
-                        border: "3px solid #cbd5e1",
-                        boxShadow: "0 0 25px rgba(255, 255, 255, 0.25)",
-                      }}
-                    >
-                      <Image
-                        src={profile.posterImage}
-                        alt="Ferdaous TAZI"
-                        fill
-                        style={{ objectFit: "cover" }}
-                      />
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
-                      <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingImage}
-                        className="btn-gold-hero"
-                        style={{ width: "100%", justifyContent: "center", fontSize: "12.5px", padding: "10px 16px" }}
-                      >
-                        <Upload style={{ width: 15, height: 15 }} />
-                        <span>{uploadingImage ? "Téléversement..." : "Changer la Photo"}</span>
-                      </motion.button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfile({ ...profile, posterImage: "" });
-                          showToast("info", "Photo retirée ! Le cadre photo sera masqué sur la carte. Cliquez sur Enregistrer.");
-                        }}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          width: "100%",
-                          padding: "9px 16px",
-                          borderRadius: "12px",
-                          background: "rgba(239, 68, 68, 0.15)",
-                          border: "1px solid rgba(239, 68, 68, 0.35)",
-                          color: "#f87171",
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Trash2 style={{ width: 14, height: 14 }} />
-                        <span>Supprimer la Photo (Masquer le cadre)</span>
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ padding: "10px 0" }}>
-                    <div
-                      style={{
-                        width: "80px",
-                        height: "80px",
-                        borderRadius: "50%",
-                        margin: "0 auto 14px",
-                        background: "rgba(255, 255, 255, 0.05)",
-                        border: "1px dashed rgba(255, 255, 255, 0.22)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <ImageIcon style={{ width: 34, height: 34, color: "#cbd5e1" }} />
-                    </div>
-
-                    <span style={{ fontSize: "14px", fontWeight: 700, color: "#ffffff", display: "block", marginBottom: "6px" }}>
-                      Aucune Photo de Profil
-                    </span>
-                    <p style={{ fontSize: "11.5px", color: "#94a3b8", marginBottom: "18px", lineHeight: 1.5 }}>
-                      La carte s'affiche actuellement en <strong>mode épuré</strong> : le cadre photo est totalement masqué et le nom s'affiche directement avec le badge vérifié.
-                    </p>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingImage}
-                        className="btn-gold-hero"
-                        style={{ width: "100%", justifyContent: "center", fontSize: "12.5px", padding: "10px 16px" }}
-                      >
-                        <Upload style={{ width: 15, height: 15 }} />
-                        <span>{uploadingImage ? "Téléversement..." : "Ajouter une Photo"}</span>
-                      </motion.button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfile({ ...profile, posterImage: "" });
-                          showToast("info", "Mode Épuré (sans photo) activé ! Cliquez sur Enregistrer.");
-                        }}
-                        className="btn-glass-action"
-                        style={{ width: "100%", justifyContent: "center", fontSize: "12px", padding: "9px 14px" }}
-                      >
-                        <Trash2 style={{ width: 14, height: 14, color: "#cbd5e1" }} />
-                        <span>Mode Épuré (Sans Photo)</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
+            {/* Logo */}
+            <div className="ck-admin-card">
+              <div className="ck-admin-section-hd">🖼️ شعار وصورة المطعم</div>
+              <div style={{ padding: "20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <ImageUpload
+                  label="شعار المطعم (Logo)"
+                  currentUrl={menu.logoImage}
+                  prefix="logo"
+                  onUploaded={(url) => set("logoImage", url)}
+                />
+                <ImageUpload
+                  label="صورة البانر الرئيسي (Hero)"
+                  currentUrl={menu.heroImage}
+                  prefix="hero"
+                  onUploaded={(url) => set("heroImage", url)}
+                />
               </div>
-            </motion.div>
-          )}
+            </div>
+          </div>
+        )}
 
-          {/* TAB 4: CLOUD VERCEL */}
-          {activeTab === "cloud" && (
-            <motion.div
-              key="cloud"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.25 }}
-              className="luxury-card"
-              style={{ padding: "26px 22px" }}
-            >
-              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#ffffff", marginBottom: "18px" }}>
-                Synchronisation Globale & Stockage Vercel
-              </h3>
+        {/* ── SECTION: MENU ── */}
+        {activeSection === "menu" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#fafafa" }}>
+                الأقسام ({menu.categories.length})
+              </div>
+              <button className="ck-btn-primary" onClick={addCat} style={{ padding: "9px 16px", fontSize: 13 }}>
+                <PlusIcon /> إضافة قسم جديد
+              </button>
+            </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-                <div
-                  style={{
-                    padding: "16px",
-                    borderRadius: "14px",
-                    background: storageStatus.hasKv ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.04)",
-                    border: storageStatus.hasKv
-                      ? "1px solid rgba(16, 185, 129, 0.4)"
-                      : "1px solid rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                    <Database style={{ width: 18, height: 18, color: storageStatus.hasKv ? "#34d399" : "#94a3b8" }} />
-                    <span style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff" }}>
-                      Vercel KV / Upstash Redis
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "12px", color: storageStatus.hasKv ? "#34d399" : "#94a3b8" }}>
-                    {storageStatus.hasKv
-                      ? "✓ Connecté & Actif : Sauvegarde automatique en temps réel."
-                      : "Non configuré (Variables KV_REST_API_URL absentes)."}
-                  </div>
-                </div>
+            {menu.categories.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 60, color: "#525252", border: "2px dashed rgba(245,158,11,0.2)", borderRadius: 20 }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🍽️</div>
+                <p style={{ fontWeight: 600 }}>لا توجد أقسام بعد</p>
+                <p style={{ fontSize: 13, marginTop: 6 }}>اضغط على "إضافة قسم جديد" للبدء</p>
+              </div>
+            ) : (
+              menu.categories.map((cat, idx) => (
+                <CategoryEditor
+                  key={cat.id}
+                  cat={cat}
+                  currency={menu.currency}
+                  onChange={(c) => setCat(idx, c)}
+                  onDelete={() => deleteCat(idx)}
+                  onMoveUp={() => moveCat(idx, -1)}
+                  onMoveDown={() => moveCat(idx, 1)}
+                  isFirst={idx === 0}
+                  isLast={idx === menu.categories.length - 1}
+                />
+              ))
+            )}
+          </div>
+        )}
 
-                <div
-                  style={{
-                    padding: "16px",
-                    borderRadius: "14px",
-                    background: storageStatus.hasBlob ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.04)",
-                    border: storageStatus.hasBlob
-                      ? "1px solid rgba(16, 185, 129, 0.4)"
-                      : "1px solid rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                    <Cloud style={{ width: 18, height: 18, color: storageStatus.hasBlob ? "#34d399" : "#94a3b8" }} />
-                    <span style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff" }}>
-                      Vercel Blob Storage
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "12px", color: storageStatus.hasBlob ? "#34d399" : "#94a3b8" }}>
-                    {storageStatus.hasBlob
-                      ? "✓ Connecté & Actif : Hébergement cloud des images."
-                      : "Non configuré (BLOB_READ_WRITE_TOKEN absent)."}
-                  </div>
+        {/* ── SECTION: SETTINGS ── */}
+        {activeSection === "settings" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Security */}
+            <div className="ck-admin-card">
+              <div className="ck-admin-section-hd">🔐 الأمان</div>
+              <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <label className="ck-label">رمز PIN للإدارة</label>
+                  <input
+                    className="ck-input"
+                    type="password"
+                    value={menu.adminPin}
+                    onChange={(e) => set("adminPin", e.target.value)}
+                    placeholder="رمز PIN جديد"
+                    maxLength={8}
+                    style={{ direction: "ltr", maxWidth: 200 }}
+                  />
+                  <p style={{ fontSize: 11, color: "#525252", marginTop: 6 }}>
+                    الرمز الحالي مكون من {menu.adminPin.length} أرقام. لا تنسَ حفظ التغييرات بعد التعديل.
+                  </p>
                 </div>
               </div>
+            </div>
 
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
+            {/* Storage info */}
+            <div className="ck-admin-card">
+              <div className="ck-admin-section-hd">☁️ التخزين السحابي</div>
+              <div style={{ padding: "20px" }}>
+                <p style={{ fontSize: 13, color: "#737373", lineHeight: 1.8 }}>
+                  البيانات محفوظة تلقائياً عبر أفضل وسيلة متاحة:
+                </p>
+                <ul style={{ listStyle: "none", marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    { label: "Vercel KV (Redis)", desc: "أسرع وسيلة - أضف KV_REST_API_URL في Vercel Environment Variables" },
+                    { label: "Vercel Blob", desc: "تخزين ملفات - أضف BLOB_READ_WRITE_TOKEN في Vercel" },
+                    { label: "GitHub API", desc: "يحفظ في الريبو - أضف GITHUB_TOKEN في Vercel" },
+                    { label: "Local File", desc: "يعمل محلياً تلقائياً بدون إعداد" },
+                  ].map((item) => (
+                    <li key={item.label} style={{ display: "flex", gap: 10, fontSize: 13, alignItems: "flex-start" }}>
+                      <span style={{ color: "#f59e0b", marginTop: 1, flexShrink: 0 }}>✓</span>
+                      <div>
+                        <span style={{ fontWeight: 700, color: "#fafafa" }}>{item.label}</span>
+                        <span style={{ color: "#525252" }}> — {item.desc}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Danger zone */}
+            <div className="ck-admin-card" style={{ border: "1px solid rgba(239,68,68,0.2)" }}>
+              <div className="ck-admin-section-hd" style={{ color: "#ef4444", borderBottom: "1px solid rgba(239,68,68,0.15)" }}>
+                ⚠️ منطقة الخطر
+              </div>
+              <div style={{ padding: "20px" }}>
+                <button
+                  className="ck-btn-danger"
                   onClick={() => {
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profile, null, 2));
-                    const downloadAnchor = document.createElement("a");
-                    downloadAnchor.setAttribute("href", dataStr);
-                    downloadAnchor.setAttribute("download", "ferdaous_tazi_profile.json");
-                    document.body.appendChild(downloadAnchor);
-                    downloadAnchor.click();
-                    downloadAnchor.remove();
+                    if (confirm("هل أنت متأكد من تسجيل الخروج؟")) setAuthed(false);
                   }}
-                  className="btn-glass-action"
-                  style={{ fontSize: "12px" }}
+                  style={{ padding: "10px 20px" }}
                 >
-                  <FileJson style={{ width: 14, height: 14 }} />
-                  <span>Exporter profile.json</span>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={handleResetToDefault}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "10px 18px",
-                    borderRadius: "14px",
-                    background: "rgba(239, 68, 68, 0.15)",
-                    border: "1px solid rgba(239, 68, 68, 0.35)",
-                    color: "#f87171",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  <Trash2 style={{ width: 14, height: 14 }} />
-                  <span>Réinitialiser aux valeurs de Ferdaous TAZI</span>
-                </motion.button>
+                  <LogoutIcon /> تسجيل الخروج
+                </button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Fixed save bar on mobile */}
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, padding: "12px 16px max(14px,env(safe-area-inset-bottom))",
+        background: "rgba(10,10,10,0.97)", backdropFilter: "blur(20px)",
+        borderTop: "1px solid rgba(245,158,11,0.15)", display: "flex", gap: 10, zIndex: 50
+      }}>
+        <Link href="/" className="ck-btn-secondary" style={{ textDecoration: "none", flex: 1, justifyContent: "center" }}>
+          ← المنيو
+        </Link>
+        <button className="ck-btn-primary" onClick={save} disabled={saving} style={{ flex: 2, justifyContent: "center" }}>
+          {saving ? "⏳ جاري الحفظ..." : <><SaveIcon /> حفظ جميع التغييرات</>}
+        </button>
+      </div>
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  background: "rgba(12, 14, 19, 0.88)",
-  border: "1px solid rgba(255, 255, 255, 0.15)",
-  color: "#ffffff",
-  fontSize: "13px",
-  outline: "none",
-  transition: "border-color 0.2s ease",
-};
