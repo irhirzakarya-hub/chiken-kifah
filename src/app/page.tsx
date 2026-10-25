@@ -155,11 +155,13 @@ function ItemCard({
 
       {/* Body */}
       <div className="ck-card-body">
-        <div className="ck-card-name">{primaryName}</div>
-        <div className="ck-card-name-fr">
+        <div className="ck-card-name" dir={lang === "ar" ? "rtl" : "ltr"}>
+          {primaryName}
+        </div>
+        <div className="ck-card-name-fr" dir={lang === "ar" ? "ltr" : "rtl"}>
           {secondaryName && secondaryName !== primaryName ? secondaryName : "\u00A0"}
         </div>
-        <div className="ck-card-desc">
+        <div className="ck-card-desc" dir={lang === "ar" ? "rtl" : "ltr"}>
           {description || "\u00A0"}
         </div>
         <div className="ck-card-footer">
@@ -169,7 +171,8 @@ function ItemCard({
             </div>
           ) : (
             <div className="ck-price" style={{ opacity: item.available ? 1 : 0.6 }}>
-              {item.price} <span>{currency}</span>
+              <span className="ck-price-val">{item.price}</span>
+              <span className="ck-price-curr">{currency}</span>
             </div>
           )}
         </div>
@@ -206,27 +209,22 @@ function CategorySection({
       ? category.nameAr
       : category.nameFr || category.nameAr;
 
-  const countLabel =
-    lang === "fr"
-      ? `${availableItems.length} article${availableItems.length > 1 ? "s" : ""}`
-      : lang === "en"
-      ? `${availableItems.length} item${availableItems.length > 1 ? "s" : ""}`
-      : `${availableItems.length} صنف`;
-
   return (
     <section>
       <div className="ck-section-header">
-        <div className="ck-section-header-main">
-          <div className="ck-section-icon">{category.icon}</div>
-          <div className="ck-section-titles">
-            <h2 className="ck-section-title-text">{catName}</h2>
-            {catSubName && catSubName !== catName && (
-              <span className="ck-section-sub-text">{catSubName}</span>
-            )}
-          </div>
-        </div>
-        <div className="ck-section-count">
-          <span className="ck-count-badge">{countLabel}</span>
+        <div className="ck-section-icon">{category.icon}</div>
+        <div className="ck-section-titles">
+          <h2 className="ck-section-title-text" dir={lang === "ar" ? "rtl" : "ltr"}>
+            {catName}
+          </h2>
+          {catSubName && catSubName !== catName && (
+            <span
+              className="ck-section-sub-text"
+              dir={lang === "ar" ? "ltr" : "rtl"}
+            >
+              {catSubName}
+            </span>
+          )}
         </div>
       </div>
       <div className="ck-grid">
@@ -265,7 +263,13 @@ export default function MenuPage() {
 
   const switchCategory = (id: string) => {
     setActiveTab(id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const tabsWrapper = tabsRef.current?.parentElement;
+    if (tabsWrapper) {
+      const topOffset = tabsWrapper.getBoundingClientRect().top + window.scrollY;
+      if (window.scrollY > topOffset) {
+        window.scrollTo({ top: topOffset, behavior: "smooth" });
+      }
+    }
     const btn = document.getElementById(`tab-${id}`);
     btn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
@@ -364,7 +368,7 @@ export default function MenuPage() {
 
           {/* Slogan */}
           {slogan && (
-            <p style={{ fontSize: 14, color: "#a3a3a3", marginBottom: 14, fontWeight: 500 }}>
+            <p style={{ fontSize: 14, color: "#d4d4d8", marginBottom: 14, fontWeight: 500 }}>
               {slogan}
             </p>
           )}
@@ -374,7 +378,7 @@ export default function MenuPage() {
             {[1, 2, 3, 4, 5].map((s) => (
               <StarIcon key={s} />
             ))}
-            <span style={{ fontSize: 12, color: "#737373", marginInlineStart: 6 }}>
+            <span style={{ fontSize: 12.5, color: "#d4d4d8", fontWeight: 600, marginInlineStart: 6 }}>
               {qualityText}
             </span>
           </div>
