@@ -228,7 +228,7 @@ function ItemEditor({
       {open && (
         <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 14, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
           {/* Name in 3 languages */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div className="ck-lang-grid">
             <div>
               <label className="ck-label">🇲🇦 الاسم بالعربية *</label>
               <input className="ck-input" value={item.nameAr} onChange={(e) => set("nameAr", e.target.value)} placeholder="اسم الصنف" />
@@ -250,7 +250,7 @@ function ItemEditor({
           </div>
 
           {/* Badge in 3 languages */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div className="ck-lang-grid">
             <div>
               <label className="ck-label">🇲🇦 الشارة بالعربية (اختياري)</label>
               <input className="ck-input" value={item.badge || ""} onChange={(e) => set("badge", e.target.value)} placeholder="مثال: الأكثر طلبًا" />
@@ -271,7 +271,7 @@ function ItemEditor({
           </div>
 
           {/* Description in 3 languages */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div className="ck-lang-grid">
             <div>
               <label className="ck-label">🇲🇦 الوصف بالعربية</label>
               <textarea className="ck-input ck-textarea" value={item.descAr || ""} onChange={(e) => set("descAr", e.target.value)} placeholder="وصف الصنف" rows={2} />
@@ -377,7 +377,7 @@ function CategoryEditor({
       {open && (
         <div style={{ padding: "0 20px 20px" }}>
           {/* Category meta */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 70px", gap: 10, marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 20 }}>
+          <div className="ck-cat-grid" style={{ marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 20 }}>
             <div>
               <label className="ck-label">🇲🇦 بالعربية *</label>
               <input className="ck-input" value={cat.nameAr} onChange={(e) => set("nameAr", e.target.value)} placeholder="مثال: البرغر" />
@@ -595,9 +595,9 @@ export default function AdminPage() {
       {/* ── ADMIN HEADER ── */}
       <div className="ck-admin-header">
         <div className="ck-admin-container">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0" }}>
+          <div className="ck-admin-header-row">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 24 }}>⚙️</div>
+              <div style={{ fontSize: 26, flexShrink: 0 }}>⚙️</div>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div style={{ fontSize: 16, fontWeight: 900, color: "#fafafa" }}>لوحة الإدارة</div>
@@ -611,26 +611,24 @@ export default function AdminPage() {
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: 11, color: "#525252" }}>Chicken Kifah Admin</div>
+                <div style={{ fontSize: 11, color: "#a3a3a3" }}>Chicken Kifah Admin</div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <Link href="/" className="ck-btn-secondary" style={{ textDecoration: "none", padding: "8px 14px", fontSize: 13 }}>
+            <div className="ck-admin-header-actions">
+              <Link href="/" className="ck-btn-secondary" style={{ textDecoration: "none" }}>
                 <EyeIcon /> عرض المنيو
               </Link>
               <button
                 className="ck-btn-primary"
                 onClick={save}
                 disabled={saving}
-                style={{ padding: "8px 20px", fontSize: 13 }}
               >
-                {saving ? "⏳ جاري الحفظ..." : <><SaveIcon /> حفظ التغييرات</>}
+                {saving ? "⏳ جاري..." : <><SaveIcon /> حفظ التغييرات</>}
               </button>
               <button
                 className="ck-btn-danger"
                 onClick={() => setAuthed(false)}
-                style={{ padding: "8px 12px" }}
-                title="خروج"
+                title="تسجيل الخروج"
               >
                 <LogoutIcon />
               </button>
@@ -638,7 +636,7 @@ export default function AdminPage() {
           </div>
 
           {/* Section tabs */}
-          <div style={{ display: "flex", gap: 4, paddingBottom: 0, borderTop: "1px solid rgba(245,158,11,0.1)", paddingTop: 4 }}>
+          <div className="ck-admin-tabs-row">
             {sections.map((s) => (
               <button
                 key={s.id}
@@ -648,12 +646,14 @@ export default function AdminPage() {
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",
-                  background: "none",
+                  background: activeSection === s.id ? "rgba(245,158,11,0.1)" : "none",
                   border: "none",
+                  borderRadius: "8px 8px 0 0",
                   fontFamily: "var(--font-cairo), sans-serif",
-                  color: activeSection === s.id ? "#f59e0b" : "#525252",
-                  borderBottom: `2px solid ${activeSection === s.id ? "#f59e0b" : "transparent"}`,
+                  color: activeSection === s.id ? "#f59e0b" : "#a3a3a3",
+                  borderBottom: `2.5px solid ${activeSection === s.id ? "#f59e0b" : "transparent"}`,
                   transition: "all 0.2s ease",
+                  flexShrink: 0,
                 }}
               >
                 {s.icon} {s.label}

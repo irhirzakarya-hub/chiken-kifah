@@ -156,28 +156,16 @@ function ItemCard({
       {/* Body */}
       <div className="ck-card-body">
         <div className="ck-card-name">{primaryName}</div>
-        {secondaryName && secondaryName !== primaryName && (
-          <div className="ck-card-name-fr">{secondaryName}</div>
-        )}
-        {description && <div className="ck-card-desc">{description}</div>}
-        <div className="ck-card-footer" style={{ alignItems: "center" }}>
+        <div className="ck-card-name-fr">
+          {secondaryName && secondaryName !== primaryName ? secondaryName : "\u00A0"}
+        </div>
+        <div className="ck-card-desc">
+          {description || "\u00A0"}
+        </div>
+        <div className="ck-card-footer">
           {item.sizeLabel ? (
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 800,
-                  color: "#f59e0b",
-                  background: "rgba(245, 158, 11, 0.12)",
-                  padding: "3px 10px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
-                  direction: "ltr",
-                  display: "inline-block",
-                }}
-              >
-                {item.sizeLabel}
-              </span>
+            <div className="ck-size-badge" title={item.sizeLabel}>
+              {item.sizeLabel}
             </div>
           ) : (
             <div className="ck-price">
@@ -470,24 +458,6 @@ export default function MenuPage() {
         })()}
       </main>
 
-      {/* Admin link subtle */}
-      <div style={{ position: "fixed", bottom: 18, left: 16, zIndex: 40 }}>
-        <Link
-          href="/admin"
-          style={{
-            fontSize: 10,
-            color: "#333",
-            textDecoration: "none",
-            padding: "5px 9px",
-            borderRadius: 6,
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.05)",
-          }}
-          title="Admin Panel"
-        >
-          ⚙
-        </Link>
-      </div>
     </div>
   );
 }
