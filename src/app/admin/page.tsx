@@ -485,6 +485,7 @@ function PinScreen({ correctPin, onSuccess }: { correctPin: string; onSuccess: (
 // ─── Main Admin ───────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [menu, setMenu] = useState<MenuData | null>(null);
+  const [capabilities, setCapabilities] = useState<{ hasKv?: boolean; hasBlob?: boolean; isCloudReady?: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [authed, setAuthed] = useState(false);
@@ -499,7 +500,10 @@ export default function AdminPage() {
   useEffect(() => {
     fetch("/api/menu", { cache: "no-store" })
       .then((r) => r.json())
-      .then((data) => setMenu(data))
+      .then((data) => {
+        setMenu(data);
+        if (data._storageCapabilities) setCapabilities(data._storageCapabilities);
+      })
       .catch(() => showToast("فشل تحميل البيانات", "error"))
       .finally(() => setLoading(false));
   }, [showToast]);
@@ -514,6 +518,7 @@ export default function AdminPage() {
         body: JSON.stringify(menu),
       });
       const data = await res.json();
+      if (data.capabilities) setCapabilities(data.capabilities);
       if (data.success) showToast(data.message || "✓ تم الحفظ بنجاح", "success");
       else showToast(data.message || "فشل الحفظ", "error");
     } catch {
@@ -594,7 +599,18 @@ export default function AdminPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 24 }}>⚙️</div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: "#fafafa" }}>لوحة الإدارة</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: "#fafafa" }}>لوحة الإدارة</div>
+                  {capabilities.hasBlob ? (
+                    <span style={{ fontSize: 11, background: "rgba(34,197,94,0.15)", color: "#22c55e", padding: "2px 8px", borderRadius: 20, fontWeight: 700, border: "1px solid rgba(34,197,94,0.3)" }}>
+                      🟢 Vercel Blob متصل
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, background: "rgba(245,158,11,0.15)", color: "#f59e0b", padding: "2px 8px", borderRadius: 20, fontWeight: 700, border: "1px solid rgba(245,158,11,0.3)" }}>
+                      ⚠️ Storage يحتاج Redeploy
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: 11, color: "#525252" }}>Chicken Kifah Admin</div>
               </div>
             </div>

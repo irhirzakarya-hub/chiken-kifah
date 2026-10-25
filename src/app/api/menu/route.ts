@@ -43,12 +43,14 @@ export async function POST(req: Request) {
     let userMsg = "✓ تم حفظ المنيو بنجاح";
     if (result.storageType === "vercel-kv")
       userMsg = "✓ تم الحفظ في Vercel KV بنجاح!";
-    else if (result.storageType === "vercel-blob")
+    else if (result.storageType === "vercel-blob" || result.storageType === "kv+blob")
       userMsg = "✓ تم الحفظ في Vercel Blob بنجاح!";
     else if (result.storageType === "github")
       userMsg = "✓ تم الحفظ ومزامنة GitHub بنجاح!";
     else if (result.isReadOnly)
-      userMsg = "تم الحفظ محلياً في هذه الجلسة فقط.";
+      userMsg = result.error
+        ? `⚠️ خطأ في التخزين السحابي: ${result.error}`
+        : "تم الحفظ محلياً فقط. (إذا أنشأت Storage للتو، قم بعمل Redeploy في Vercel ليتفعل).";
 
     return NextResponse.json(
       {

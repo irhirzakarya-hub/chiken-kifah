@@ -140,7 +140,6 @@ export async function saveMenu(
         access: "public",
         addRandomSuffix: false,
         allowOverwrite: true,
-        cacheControlMaxAge: 0,
         contentType: "application/json",
       });
       savedToCloud = true;
@@ -148,6 +147,7 @@ export async function saveMenu(
     } catch (e: unknown) {
       const err = e as Error;
       lastError = err?.message || String(e);
+      console.error("[saveMenu] Vercel Blob put error:", err);
     }
   }
 
