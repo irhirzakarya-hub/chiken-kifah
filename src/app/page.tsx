@@ -168,12 +168,9 @@ function ItemCard({
               {item.sizeLabel}
             </div>
           ) : (
-            <div className="ck-price">
+            <div className="ck-price" style={{ opacity: item.available ? 1 : 0.6 }}>
               {item.price} <span>{currency}</span>
             </div>
-          )}
-          {!item.available && (
-            <span className="ck-unavailable-badge">{unavailableLabel}</span>
           )}
         </div>
       </div>
@@ -202,7 +199,12 @@ function CategorySection({
       ? category.nameEn || category.nameAr
       : category.nameAr;
 
-  const catSubName = lang === "ar" ? category.nameFr : undefined;
+  const catSubName =
+    lang === "ar"
+      ? category.nameFr
+      : lang === "fr"
+      ? category.nameAr
+      : category.nameFr || category.nameAr;
 
   const countLabel =
     lang === "fr"
@@ -213,28 +215,19 @@ function CategorySection({
 
   return (
     <section>
-      <div className="ck-section-title">
-        <div className="icon-badge">{category.icon}</div>
-        <span>{catName}</span>
-        {catSubName && catSubName !== catName && (
-          <span style={{ fontSize: 13, color: "#737373", fontWeight: 600 }}>
-            {catSubName}
-          </span>
-        )}
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "#f59e0b",
-            background: "rgba(245,158,11,0.1)",
-            border: "1px solid rgba(245,158,11,0.2)",
-            padding: "3px 10px",
-            borderRadius: 999,
-            marginInlineStart: "auto",
-          }}
-        >
-          {countLabel}
-        </span>
+      <div className="ck-section-header">
+        <div className="ck-section-header-main">
+          <div className="ck-section-icon">{category.icon}</div>
+          <div className="ck-section-titles">
+            <h2 className="ck-section-title-text">{catName}</h2>
+            {catSubName && catSubName !== catName && (
+              <span className="ck-section-sub-text">{catSubName}</span>
+            )}
+          </div>
+        </div>
+        <div className="ck-section-count">
+          <span className="ck-count-badge">{countLabel}</span>
+        </div>
       </div>
       <div className="ck-grid">
         {sorted.map((item) => (

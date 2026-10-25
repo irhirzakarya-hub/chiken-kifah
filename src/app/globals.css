@@ -219,20 +219,26 @@ body {
   padding: 0 16px 50px;
 }
 
-.ck-section-title {
+/* Category Section Header */
+.ck-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 0 16px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+  margin-bottom: 18px;
+}
+
+.ck-section-header-main {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 32px 0 20px;
-  font-size: 22px;
-  font-weight: 900;
-  color: #f59e0b;
-  font-family: var(--font-cairo), sans-serif;
-  border-bottom: 1px solid rgba(245,158,11,0.15);
-  margin-bottom: 20px;
+  min-width: 0;
+  flex: 1;
 }
 
-.ck-section-title .icon-badge {
+.ck-section-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -240,6 +246,104 @@ body {
   height: 44px;
   border-radius: 14px;
   font-size: 22px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  flex-shrink: 0;
+}
+
+.ck-section-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ck-section-title-text {
+  font-size: 21px;
+  font-weight: 900;
+  color: #f59e0b;
+  font-family: var(--font-cairo), sans-serif;
+  line-height: 1.25;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ck-section-sub-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #888888;
+  font-family: var(--font-outfit), sans-serif;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ck-section-count {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.ck-count-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .ck-section-header {
+    padding: 16px 0 12px;
+    margin-bottom: 14px;
+    gap: 8px;
+  }
+  .ck-section-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 19px;
+    border-radius: 12px;
+  }
+  .ck-section-title-text {
+    font-size: 17.5px;
+  }
+  .ck-section-sub-text {
+    font-size: 11.5px;
+  }
+  .ck-count-badge {
+    font-size: 11px;
+    padding: 3px 9px;
+  }
+}
+
+/* Fallback for legacy class */
+.ck-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0 16px;
+  font-size: 20px;
+  font-weight: 900;
+  color: #f59e0b;
+  font-family: var(--font-cairo), sans-serif;
+  border-bottom: 1px solid rgba(245,158,11,0.15);
+  margin-bottom: 18px;
+}
+.ck-section-title .icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 20px;
   background: rgba(245,158,11,0.12);
   border: 1px solid rgba(245,158,11,0.25);
 }
@@ -255,6 +359,7 @@ body {
   .ck-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
+    align-items: stretch;
   }
 }
 
@@ -267,9 +372,10 @@ body {
   cursor: default;
   transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
   backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 100%;
 }
 
 .ck-card:hover {
@@ -345,9 +451,15 @@ body {
 
 .ck-card-body {
   padding: 12px 10px 14px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+}
+
+@media (max-width: 640px) {
+  .ck-card-body {
+    padding: 10px 8px 12px;
+  }
 }
 
 .ck-card-name {
@@ -357,17 +469,22 @@ body {
   margin-bottom: 2px;
   font-family: var(--font-cairo), sans-serif;
   line-height: 1.3;
-  min-height: 2.6em;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  overflow: hidden;
 }
 
 @media (max-width: 640px) {
   .ck-card-name {
     font-size: 13.5px;
-    min-height: 2.7em;
+    height: 38px;
+    min-height: 38px;
+    max-height: 38px;
   }
 }
 
@@ -377,11 +494,24 @@ body {
   color: #888888;
   margin-bottom: 4px;
   font-family: var(--font-outfit), sans-serif;
-  min-height: 1.3em;
+  height: 18px;
+  min-height: 18px;
+  max-height: 18px;
+  line-height: 18px;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .ck-card-name-fr {
+    font-size: 11px;
+    height: 16px;
+    min-height: 16px;
+    max-height: 16px;
+    line-height: 16px;
+  }
 }
 
 .ck-card-desc {
@@ -389,24 +519,46 @@ body {
   color: #999999;
   line-height: 1.45;
   margin-bottom: 8px;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 2.9em;
-  max-height: 2.9em;
   text-align: center;
 }
 
+@media (max-width: 640px) {
+  .ck-card-desc {
+    font-size: 11px;
+    line-height: 1.4;
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+  }
+}
+
 .ck-card-footer {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-top: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   border-top: 1px solid rgba(245,158,11,0.12);
   padding-top: 10px;
   width: 100%;
-  min-height: 44px;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+}
+
+@media (max-width: 640px) {
+  .ck-card-footer {
+    padding-top: 8px;
+    height: 38px;
+    min-height: 38px;
+    max-height: 38px;
+  }
 }
 
 .ck-size-badge {
@@ -414,7 +566,7 @@ body {
   font-weight: 800;
   color: #f59e0b;
   background: rgba(245, 158, 11, 0.12);
-  padding: 5px 8px;
+  padding: 0 8px;
   border-radius: 8px;
   border: 1px solid rgba(245, 158, 11, 0.3);
   direction: ltr;
@@ -426,7 +578,7 @@ body {
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  height: 32px;
+  height: 30px;
 }
 
 .ck-price {
@@ -438,7 +590,7 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 32px;
+  height: 30px;
 }
 
 .ck-price span {
