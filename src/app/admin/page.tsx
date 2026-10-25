@@ -342,7 +342,17 @@ function CategoryEditor({
   return (
     <div className="ck-admin-card">
       {/* Category header */}
-      <button className="ck-accordion-trigger" onClick={() => setOpen((o) => !o)}>
+      <div
+        role="button"
+        tabIndex={0}
+        className="ck-accordion-trigger"
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            setOpen((o) => !o);
+          }
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 22 }}>{cat.icon}</span>
           <div style={{ textAlign: "right" }}>
@@ -353,18 +363,21 @@ function CategoryEditor({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {/* Move up/down */}
           <button
+            type="button"
             className="ck-btn-secondary" style={{ padding: "5px 8px" }}
             onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
             disabled={isFirst}
             title="تحريك لأعلى"
           >▲</button>
           <button
+            type="button"
             className="ck-btn-secondary" style={{ padding: "5px 8px" }}
             onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
             disabled={isLast}
             title="تحريك لأسفل"
           >▼</button>
           <button
+            type="button"
             className="ck-btn-danger" style={{ padding: "6px 10px" }}
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
           >
@@ -372,7 +385,7 @@ function CategoryEditor({
           </button>
           <span style={{ color: "#525252" }}>{open ? <ChevronUp /> : <ChevronDown />}</span>
         </div>
-      </button>
+      </div>
 
       {open && (
         <div style={{ padding: "0 20px 20px" }}>
